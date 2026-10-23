@@ -1,27 +1,123 @@
+@import url("https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Architects+Daughter&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design Tokens ─────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f7f5f1;
+  --ink: #3a2f30;
+  --ink-soft: #6b5f5f;
+  --ink-rgb: 58, 47, 48;
+  --font: "Patrick Hand", "Architects Daughter", cursive;
+  --roughness: 1;
+  --bowing: 1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Chalkboard dark mode — swap paper and ink */
+.dark {
+  --paper: #2a2426;
+  --ink: #f0ece4;
+  --ink-soft: #b8afa8;
+}
+
+/* ─── Base ──────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font);
+  background-color: var(--paper);
+  color: var(--ink);
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  min-height: 100dvh;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Remove default browser styles */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
 }
+
+/* ─── Sketch utility classes ─────────────────────────────── */
+.sketch-text {
+  font-family: var(--font);
+  color: var(--ink);
+}
+
+.sketch-muted {
+  color: var(--ink-soft);
+}
+
+/* Tiptap editor base */
+.tiptap-editor {
+  outline: none;
+  font-family: var(--font);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.tiptap-editor p.is-editor-empty:first-child::before {
+  color: var(--ink-soft);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.tiptap-editor h1 { font-size: 2rem; font-weight: 700; margin: 0.5rem 0; }
+.tiptap-editor h2 { font-size: 1.5rem; font-weight: 700; margin: 0.4rem 0; }
+.tiptap-editor h3 { font-size: 1.25rem; font-weight: 700; margin: 0.3rem 0; }
+.tiptap-editor ul { list-style: disc; padding-left: 1.5rem; }
+.tiptap-editor ol { list-style: decimal; padding-left: 1.5rem; }
+.tiptap-editor blockquote {
+  border-left: 3px solid var(--ink);
+  padding-left: 1rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.tiptap-editor pre {
+  background: rgba(var(--ink-rgb), 0.08);
+  padding: 0.75rem 1rem;
+  font-family: monospace;
+  border-radius: 0;
+}
+.tiptap-editor hr {
+  border: none;
+  border-top: 2px solid var(--ink);
+  margin: 1rem 0;
+}
+
+/* Checkbox todo items */
+.tiptap-editor ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.5rem;
+}
+.tiptap-editor ul[data-type="taskList"] li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.tiptap-editor ul[data-type="taskList"] li > label {
+  margin-top: 2px;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ink-soft); border-radius: 0; }

@@ -71,6 +71,14 @@ Write-Host "[4/6] Finding latest Amazon Linux 2023 AMI..." -ForegroundColor Yell
 $AMI_ID = (aws ssm get-parameter --region "$AWS_REGION" --name /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64 --query "Parameter.Value" --output text).Trim()
 Write-Host "AMI ID: $AMI_ID" -ForegroundColor Cyan
 
+# Terminate previous instances if any
+$oldInstances = (aws ec2 describe-instances --region "$AWS_REGION" --filters "Name=tag:Name,Values=notionlite-app" "Name=instance-state-name,Values=running,pending" --query "Reservations[*].Instances[*].InstanceId" --output text).Trim()
+if ($oldInstances -and $oldInstances -ne "None") {
+    Write-Host "Terminating previous running instance(s): $oldInstances" -ForegroundColor Yellow
+    aws ec2 terminate-instances --region "$AWS_REGION" --instance-ids ($oldInstances -split "\s+") | Out-Null
+    Start-Sleep -Seconds 3
+}
+
 # 5. Build User Data script
 Write-Host "[5/6] Generating User Data startup script..." -ForegroundColor Yellow
 $COGNITO_USER_POOL_ID = "ap-south-1_kvrGS6pqU"
@@ -84,22 +92,29 @@ set -xeuo pipefail
 exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 echo "=== Initializing NotionLite on Amazon EC2 ==="
+
+# 1. Enable 2GB swap space so micro instance build doesn't run out of memory
+dd if=/dev/zero of=/swapfile bs=128M count=16
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
+
+# 2. Update and install packages
 dnf update -y
 dnf install -y git docker amazon-ssm-agent
 
-systemctl enable amazon-ssm-agent
-systemctl start amazon-ssm-agent
+systemctl enable --now amazon-ssm-agent
+systemctl enable --now docker
+usermod -a -G docker ec2-user
 
-systemctl enable docker
-systemctl start docker
-
-# Clone repository
+# 3. Clone repository
 mkdir -p /opt/app
 cd /opt/app
 git clone https://github.com/KATRIXBEE/notion.git .
 
-# Configure environment variables
-cat <<'EOF' > .env.local
+# 4. Configure environment variables
+cat <<ENVEOF > .env.local
 AWS_REGION=$AWS_REGION
 COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID
 COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID
@@ -108,13 +123,13 @@ DYNAMODB_TABLE=$DYNAMODB_TABLE
 S3_BUCKET=$S3_BUCKET
 COOKIE_SECRET=notionlite_super_secret_cookie_key_32chars
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
-EOF
+ENVEOF
 
-# Build Docker image
+# 5. Build Docker image
 echo "=== Building NotionLite Docker container ==="
 docker build -t notionlite:latest .
 
-# Run container on port 80
+# 6. Run container on port 80
 echo "=== Launching NotionLite container on port 80 ==="
 docker run -d \
   --name notionlite \

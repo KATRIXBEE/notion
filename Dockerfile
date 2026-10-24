@@ -10,6 +10,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN mkdir -p /app/public
 
 # Set build-time env vars if needed
 ENV NEXT_TELEMETRY_DISABLED=1
